@@ -1,0 +1,40 @@
+Import "01-LSC-definitions-and-basic-lemmas".
+
+%%%%%%%%%
+% STRUCTURAL REDUCTION APP
+%%%%%%%%%
+
+Define str_red_app_root : tm -> tm -> prop by
+	str_red_app_root (app (esub (x\T x) U) S) (esub (x\app (T x) S) U).
+
+Define str_red_app : tm -> tm -> prop by
+    /* injection of the root case */
+    str_red_app P Q := str_red_app_root P Q;  
+
+    /* equivalence relation clauses */
+    str_red_app P P; 
+    str_red_app P R := exists Q, str_red_app P Q /\ str_red_app Q R;  
+
+    /* contextual closure clauses */
+    str_red_app (esub T U) (esub S U) := nabla x, str_red_app (T x) (S x);
+    str_red_app (esub U T) (esub U S) := str_red_app T S;
+    str_red_app (app T U) (app S U) := str_red_app T S;
+    str_red_app (app U T) (app U S) := str_red_app T S.
+    
+    
+%%%%%%%%%
+% STRUCTURAL REDUCTION ANS
+%%%%%%%%%
+
+Define str_red_ans_root : tm -> tm -> prop by
+	str_red_ans_root (esub A (esub T U)) (esub (x\ esub A (T x)) U) := nabla x, is_answer (A x).
+
+Define str_red_ans : tm -> tm -> prop by
+    /* injection of the root case */
+    str_red_ans P Q := str_red_ans_root P Q;  
+
+    /* reflexivity */
+    str_red_ans P P;
+
+    /* contextual closure clause */
+    str_red_ans (esub T U) (esub S U) := nabla x, str_red_ans (T x) (S x).    

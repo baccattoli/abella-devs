@@ -1,0 +1,188 @@
+Kind tm type.
+
+%lsc terms
+Type abs (tm -> tm) -> tm.
+Type app tm -> tm -> tm.
+Type esub (tm -> tm) -> tm -> tm.
+
+%%%%%%%%%%
+%%  Reduction rules
+%%%%%%%%%%
+
+Define red_root_m : tm -> tm -> prop by
+    red_root_m (app (abs T) U) (esub T U);
+    red_root_m (app (esub T S) U) (esub V S) 
+    		:= nabla x, red_root_m (app (T x) U) (V x).
+
+/* The definition of the exponential rule requires an auxiliary predicate for isolating 
+the occurrence to be replaced, given that contexts are not first class objects in Abella.
+The predicate "free_oc_ctx T x C" that we use is the combination of two other predicates 
+given next for helping to understand the code, namely:
+- "free_oc T x" that isolates a free occurrence of x (not under abstraction) in T, and 
+- "single_hole_ctx C" that defines a weak context C having only one occurrence of the hole
+(and being unable to capture variables)
+*/
+
+Define free_oc : tm -> tm -> prop by
+    nabla x, free_oc x x;
+    nabla x, free_oc (app (T x) (U x)) x := nabla x, free_oc (U x) x;
+    nabla x, free_oc (app (T x) (U x)) x := nabla x, free_oc (T x) x;
+    nabla x, free_oc (esub (T x) (U x)) x := nabla x, free_oc (U x) x;
+    nabla x, free_oc (esub (T x) (U x)) x := nabla x y, free_oc (T x y) x.
+
+Define single_hole_ctx : (tm -> tm) -> prop by
+    single_hole_ctx (h\h);
+    single_hole_ctx (h\ app (C h) U) := single_hole_ctx C;
+    single_hole_ctx (h\ app U (C h)) := single_hole_ctx C;
+    single_hole_ctx (h\ esub (x\ C x h) U) := nabla x, single_hole_ctx (C x);
+    single_hole_ctx (h\ esub U (C h)) := single_hole_ctx C.
+
+Define free_oc_ctx : tm -> tm -> (tm -> tm) -> prop by
+    nabla x, free_oc_ctx x x (h\h);
+    nabla x, free_oc_ctx (app (T x) (U x)) x (h\ app (T x) (C x h)) := nabla x, free_oc_ctx (U x) x (C x);
+    nabla x, free_oc_ctx (app (T x) (U x)) x (h\ app (C x h) (U x)) := nabla x, free_oc_ctx (T x) x (C x);
+    nabla x, free_oc_ctx (esub (T x) (U x)) x (h\ esub (T x) (C x h)) := nabla x, free_oc_ctx (U x) x (C x);
+    nabla x, free_oc_ctx (esub (T x) (U x)) x (h\ esub (C x h) (U x)) := nabla x y, free_oc_ctx (T x y) x (h\ C x h y).
+
+
+Theorem free_oc_ctx_is_well_defined : forall T C, nabla x,
+    free_oc_ctx (T x) x (C x) -> T x = C x x.
+induction on 1. intros. case H1.
+    search.
+    apply IH to H2. search.
+    apply IH to H2. search.
+    apply IH to H2. search.
+    apply IH to H2. search.
+
+Define red_root_e      : tm -> tm -> prop  by
+    red_root_e (esub T U) (esub (x\ C x U) U) :=
+    nabla x, free_oc_ctx (T x) x (C x).
+
+% definition of predicate that given a reduction relation R extends it to its closure by weak contexts
+Define ctx_cl_tm : (tm -> tm -> prop) -> (tm -> tm -> prop) by
+    ctx_cl_tm R T U := R T U;
+    ctx_cl_tm R (app T S) (app U S) := ctx_cl_tm R T U;
+    ctx_cl_tm R (app S T) (app S U) := ctx_cl_tm R T U;
+    ctx_cl_tm R (esub T S) (esub U S) := 
+      nabla x, ctx_cl_tm R (T x) (U x);
+    ctx_cl_tm R (esub S T ) (esub S U) := 
+      ctx_cl_tm R (T) (U).
+
+%%%%%%%%%
+% Normal forms for non-erasing reduction
+%%%%%%%%%
+
+Define is_answer : tm -> prop by
+    is_answer (abs T);
+    is_answer (esub T U) := is_answer U /\ nabla x, is_answer (T x).
+
+Theorem is_answer_does_not_m_reduce : forall A U,
+    is_answer A -> ctx_cl_tm red_root_m A U -> false.
+induction on 2. intros. case H2.
+    case H1.
+        case H3.
+        case H3.
+    case H1.
+    case H1.
+    case H1. apply IH to H5 H3.
+    case H1. apply IH to H4 H3.
+    
+
+Theorem free_oc_ctx_answer_absurd : forall A C, nabla x,
+    is_answer (A x) -> 
+    free_oc_ctx (A x) x (C x) -> false.
+induction on 1. intros. case H1.
+    case H2.
+    case H2.
+        apply IH to H3 H5.
+        apply IH to H4 H5.
+
+
+Theorem is_answer_does_not_root_e_reduce : forall A U,
+    is_answer A -> red_root_e A U -> false.
+induction on 1. intros. case H1.
+    case H2.
+    case H2. apply free_oc_ctx_answer_absurd to H4 H5.
+
+Theorem is_answer_does_not_e_reduce : forall A U,
+    is_answer A -> ctx_cl_tm red_root_e A U -> false.
+induction on 2. intros. case H2.
+    apply is_answer_does_not_root_e_reduce to H1 H3.
+    case H1.
+    case H1.
+    case H1. apply IH to H5 H3.
+    case H1. apply IH to H4 H3.
+
+%%%%%%%%%
+% Some basic properties
+%%%%%%%%%
+
+Theorem free_oc_ctx_absurd : forall T C, nabla x,
+    free_oc_ctx T x (C x) -> false.
+induction on 1. intros. case H1 (keep).
+    apply IH to H2.
+    apply IH to H2.
+    apply IH to H2.
+    apply IH to H2.
+    
+
+Theorem free_oc_ctx_does_not_create_free_names : forall T (C : tm -> tm -> tm -> tm), nabla x y,
+    free_oc_ctx (T x) x (C y x) -> exists D, nabla y', D = C y'.
+induction on 1. intros. case H1 (keep).
+    search.
+    apply IH to H2. search.
+    apply IH to H2. search.
+    apply IH to H2. search.
+    apply IH to H2. search.
+
+Theorem red_e_does_not_create_free_names : forall T (U : tm -> tm), nabla x, 
+    ctx_cl_tm red_root_e T (U x) -> exists S, nabla y, S = U y.
+induction on 1. intros. case H1.
+    case H2. apply free_oc_ctx_does_not_create_free_names to H4. search.
+    apply IH to H2 with x = n1. search.
+    apply IH to H2 with x = n1. search.
+    apply IH to H2 with x = n1. search.
+    apply IH to H2 with x = n1. search.
+
+Theorem red_e_does_not_create_free_names2 : forall (T : tm -> tm) T' U U', nabla x, 
+    ctx_cl_tm red_root_e (app (T x) U) (app (T' x) (U' x)) -> 
+        exists S, nabla y, S = U' y.
+intros. case H1.
+    case H2.
+    search.
+    apply red_e_does_not_create_free_names to H2. search.
+
+
+Theorem red_root_m_does_not_create_free_names : forall T (U : tm -> tm), nabla x, 
+    red_root_m T (U x) -> exists S, nabla y, S = U y.
+induction on 1. intros. case H1.
+    search.
+    apply IH to H2. search.
+
+
+Theorem red_m_does_not_create_free_names : forall T (U : tm -> tm), nabla x, 
+    ctx_cl_tm red_root_m T (U x) -> exists S, nabla y, S = U y.
+induction on 1. intros. case H1.
+    apply red_root_m_does_not_create_free_names to H2. search.
+    apply IH to H2. search.
+    apply IH to H2. search.
+    apply IH to H2. search.
+    apply IH to H2. search.
+
+Theorem e_step_shape : forall T U S,
+ctx_cl_tm red_root_e (app T U) S -> 
+    exists T' U', S = app T' U'.
+induction on 1. intros. case H1 (keep).
+    case H2.
+    search.
+    search.
+
+
+Theorem e_step_esub_extension : forall T U T' U' A, nabla x,
+ctx_cl_tm red_root_e (app (T x) U) (app (T' x) U') -> 
+    ctx_cl_tm red_root_e (app (esub T A) U) (app (esub T' A) U').
+induction on 1. intros. case H1 (keep).
+    case H2. 
+    search.
+    search.
+   

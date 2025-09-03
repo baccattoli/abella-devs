@@ -1,0 +1,103 @@
+Import "02-def-of-structural-reduction-app-for-call-by-name".
+
+%%%%%%%
+%%%%%%%
+
+Theorem str_red_app_root_strong_preponement_e : forall T T' U', 
+   str_red_app_root T' T -> ctx_cl_tm red_root_e T' U' 
+   -> exists U, ctx_cl_tm red_root_e T U /\ str_red_app U' U.
+induction on 2. intros. case H2.
+    case H1. case H3.
+    case H1 (keep). case H3.
+        case H4. search.
+        search.
+        search.
+    case H1. case H3.
+        case H4. search.
+        search.
+        search.
+        search.
+        search.
+    case H1.
+    case H1.
+
+Theorem str_red_app_and_freeoc : forall T S C A, nabla x,  
+    str_red_app (T x) (S x) -> 
+    free_oc_ctx (T x) x (C x) -> 
+        exists D, free_oc_ctx (S x) x D /\ str_red_app (C x A) (D A).
+induction on 1. intros. case H1 (keep).
+    case H3. case H2 (keep).
+        search.
+        case H4.
+            search.
+            search.
+    search.
+    apply IH to H3 H2 with A = A. apply IH to H4 H5 with A = A. search.
+    case H2.
+        search.
+        apply IH to H3 H4 with A = A. search.
+    case H2.
+        search.
+        apply IH to H3 H4 with A = A. search.
+
+
+Theorem str_red_app_strong_preponement_e : forall T T' U', 
+   str_red_app T' T -> ctx_cl_tm red_root_e T' U' 
+   -> exists U, ctx_cl_tm red_root_e T U /\ str_red_app U' U.
+induction on 1. intros. case H1 (keep).
+    apply str_red_app_root_strong_preponement_e to H3 H2. search.
+    search.
+    apply IH to H3 H2. apply IH to H4 H5. search.
+    case H2 (keep). 
+        case H4.  apply str_red_app_and_freeoc to H3 H5 with A = U. search.
+        apply IH to H3 H4. search.
+        search.
+    case H2.
+        case H4.
+        apply IH to H3 H4. search.
+        search.
+
+        
+Theorem str_red_app_abs_impossible : forall T U,
+    str_red_app (abs T) U -> U = abs T.
+induction on 1. intros. case H1.
+    case H2.
+    search.
+    apply IH to H2. apply IH to H3. search.
+
+Theorem strong_preponement_root_m_left_of_app : forall S U T T',
+    str_red_app T S ->
+    red_root_m (app T U) T' -> exists S', red_root_m (app S U) S' /\ str_red_app T' S'.
+induction on 1. intros. case H2 (keep).
+    apply str_red_app_abs_impossible to H1. search.
+    case H1.
+        case H4.
+        search.
+        apply IH to H4 H2. apply IH to H5 H6. search.
+        apply IH to H4 H3. search.
+
+
+Theorem str_red_app_strong_preponement_m : forall T T' U',
+   str_red_app T' T -> ctx_cl_tm red_root_m T' U' 
+   -> exists U, ctx_cl_tm red_root_m T U /\ str_red_app U' U.
+induction on 1. intros. case H1 (keep).
+    case H2 (keep).
+        case H3. case H4. search.
+        case H3. case H4.
+            case H5.
+            search.
+            search.
+        case H3. search.
+        case H3.
+        case H3.
+    search.
+    apply IH to H3 H2. apply IH to H4 H5. search.
+    case H2 (keep). 
+        case H4. 
+        apply IH to H3 H4. search.
+        search.
+    case H2.
+        apply strong_preponement_root_m_left_of_app to H3 H4. search. 
+        apply IH to H3 H4. search.
+        search.
+        
