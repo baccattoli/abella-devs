@@ -80,15 +80,11 @@ Define str_red_ans : tm -> tm -> prop by
     /* injection of the root case */
     str_red_ans P Q := str_red_ans_root P Q;  
 
-    /* equivalence relation clauses */
-    %str_red_app P P; % this case is needed for the postponement of db steps
-    %str_red_ans P R := exists Q, str_red_app P Q /\ str_red_app Q R;  
+    /* reflexivity */
+    str_red_ans P P;
 
-    /* contextual closure clauses */
+    /* contextual closure clause */
     str_red_ans (esub T U) (esub S U) := nabla x, str_red_ans (T x) (S x).
-    %str_red_app (esub U T) (esub U S) := str_red_app T S;
-    %str_red_app (app T U) (app S U) := str_red_app T S;
-    %str_red_app (app U T) (app U S) := str_red_app T S.
 
 %%%%%%%
 %%%%%%%
@@ -150,6 +146,7 @@ induction on 1. intros. case H1.
             case H5.
                 search.
                 permute (n2 n3) H4. apply free_oc_ctx_answer_absurd to H4 H6.
+        search.
         case H2.
             search.
             apply IH to H3 H4 with A = A. search.
@@ -160,6 +157,7 @@ Theorem str_red_ans_strong_postponement_ms : forall T T' U,
    -> exists U', ctx_cl_tm red_root_ms T' U' /\ str_red_ans U' U.
 induction on 1. intros. case H1 (keep).
     apply str_red_ans_root_strong_postponement_ms to H3 H2. search.
+    search.
     case H2 (keep).
         case H4. apply str_red_ans_freeoc to H3 H5 with A = U1. search.
         apply IH  to H3 H4. search.
@@ -188,6 +186,7 @@ induction on 1. intros. case H1 (keep).
             permute (n1 n2) H4. apply is_answer_does_not_db_reduce to H4 H6.
             search.
         search.
+    search.
     case H2.
         case H4.
         apply IH to H3 H4. search.
